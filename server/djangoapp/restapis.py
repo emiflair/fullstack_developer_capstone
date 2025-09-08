@@ -1,22 +1,73 @@
-# Uncomment the imports below before you add the function code
-# import requests
+# server/djangoapp/restapis.py
 import os
-from dotenv import load_dotenv
+import requests
+from urllib.parse import urlencode, quote_plus
+from pathlib import Path
 
-load_dotenv()
+# Load .env as a fallback only (do NOT override real env provided by K8s)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=Path(__file__).with_name(".env"), override=False)
+except Exception:
+    pass  # optional in production
 
-backend_url = os.getenv(
-    'backend_url', default="http://localhost:3030")
-sentiment_analyzer_url = os.getenv(
-    'sentiment_analyzer_url',
-    default="http://localhost:5050/")
+def _env(name: str, default: str = "") -> str:
+    return os.environ.get(name, default).strip()
 
-# def get_request(endpoint, **kwargs):
-# Add code for get requests to back end
+def _norm_base(url: str) -> str:
+    return (url or "").rstrip("/")
 
-# def analyze_review_sentiments(text):
-# request_url = sentiment_analyzer_url+"analyze/"+text
-# Add code for retrieving sentiments
+BACKEND_URL = _norm_base(_env("BACKEND_URL", "http://localhost:3030"))
+SENT_BASE   = _norm_base(_env("sentiment_analyzer_url"))
 
-# def post_review(data_dict):
-# Add code for posting review
+if not BACKEND_URL:
+    raise RuntimeError("backend_url is not set (env or .env)")
+if not SENT_BASE:
+    raise RuntimeError("sentiment_analyzer_url is not set (env or .env)")
+
+print(f"[restapis] BACKEND_URL = {BACKEND_URL}")
+print(f"[restapis] SENT_URL    = {SENT_BASE}")
+
+def _join(base: str, endpoint: str) -> str:
+    ep = endpoint if endpoint.startswith("/") else f"/{endpoint}"
+    return f"{base}{ep}"
+
+def get_request(endpoint: str, **params):
+    """GET the Node/Mongo backend."""
+    url = _join(BACKEND_URL, endpoint)
+    if params:
+        url = f"{url}?{urlencode(params)}"
+    print(f"[restapis] GET {url}")
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        ct = (r.headers.get("content-type") or "").lower()
+        return r.json() if "application/json" in ct else r.text
+    except Exception as e:
+        print("[restapis] GET error:", e)
+        return None
+
+def analyze_review_sentiments(text: str):
+    """GET the sentiment analyzer microservice."""
+    url = _join(SENT_BASE, f"analyze/{quote_plus(text or '')}")
+    print(f"[restapis] SENT {url}")
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        print("[restapis] SENT error:", e)
+        return {"sentiment": "neutral"}
+
+def post_review(data: dict):
+    """POST a review to the Node/Mongo backend."""
+    url = _join(BACKEND_URL, "insert_review")
+    print(f"[restapis] POST {url}")
+    try:
+        r = requests.post(url, json=data, timeout=10)
+        r.raise_for_status()
+        ct = (r.headers.get("content-type") or "").lower()
+        return r.json() if "application/json" in ct else r.text
+    except Exception as e:
+        print("[restapis] POST error:", e)
+        return {"status": "error", "error": str(e)}

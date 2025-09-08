@@ -3,3 +3,4 @@ Django
 Pillow
 gunicorn
 python-dotenv
+djangorestframework

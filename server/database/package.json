@@ -4,13 +4,15 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
+    "start-simple": "node app_simple.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",    
-    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.1"
   }

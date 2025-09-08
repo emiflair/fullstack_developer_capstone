@@ -1,23 +1,42 @@
-version: '3.9'
+version: "3.9"
 
 services:
-  # Mongodb service
   mongo_db:
     container_name: db_container
-    image: mongo:latest
-    ports:
-      - 27017:27017
+    image: mongo:6.0         # use a stable tag instead of floating "latest"
     restart: always
+    ports:
+      - "27017:27017"        # expose only if you need to connect locally (Studio 3T, Compass, etc.)
     volumes:
       - mongo_data:/data/db
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Node api service
   api:
-    image: nodeapp
+    build:
+      context: .
+      dockerfile: Dockerfile   # expects Dockerfile in server/database
+    image: nodeapp:latest      # optional tag
+    restart: always
     ports:
-      - 3030:3030
-    depends_on: 
-      - mongo_db
+      - "3030:3030"
+    depends_on:
+      mongo_db:
+        condition: service_healthy
+    environment:
+      - MONGO_URL=mongodb://mongo_db:27017/dealershipsDB
+      - PORT=3030
+    networks:
+      - backend
 
 volumes:
-  mongo_data: {}
+  mongo_data:
+
+networks:
+  backend:
+    driver: bridge

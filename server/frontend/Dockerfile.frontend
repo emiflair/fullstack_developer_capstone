@@ -12,8 +12,11 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Build the app
+RUN npm run build
+
 # Expose port
-EXPOSE 3030
+EXPOSE 3000
 
 # Start the application
-CMD ["node", "app.js"]
+CMD ["npm", "start"]
