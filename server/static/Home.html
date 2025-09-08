@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Dealership - Home</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="static/style.css">
+  <link rel="stylesheet" href="static/bootstrap.min.css">
+  <link rel="stylesheet" href="static/custom.css">
+</head>
+<body>
+<script>
+
+const logout = async (e) => {
+    // Build logout URL and Make GET request to logout endpoint
+  let logout_url = window.location.origin+"/djangoapp/logout";
+  const res = await fetch(logout_url, {
+    method: "GET",
+  });
+
+  const json = await res.json();
+  if (json) {
+    // Clear session storage and reload page
+    let username = sessionStorage.getItem('username');
+    sessionStorage.removeItem('username');
+    window.location.href = window.location.origin;
+    window.location.reload();
+     // Notify user of logout
+    alert("Logging out "+username+"...") 
+  }
+  else {
+    alert("The user could not be logged out.")
+  }
+};
+
+let checkSession = ()=>{
+  let curr_user = sessionStorage.getItem("username");
+
+  if (curr_user && curr_user !== "") {
+    document.getElementById("loginlogout").innerHTML = 
+    '<span class="homepage_links">' + curr_user +'</span>' +
+    '<a class="homepage_links" onclick="logout()" href="/">Logout</a>'
+  } else {
+    document.getElementById("loginlogout").innerHTML = 
+    '<a class="homepage_links" href="/login">Login</a>'+
+    '<a class="homepage_links"  href="/register">Register</a>'
+  }
+ }
+</script>
+</head>
+<body onload="checkSession()">
+<nav class="navbar navbar-expand-lg navbar-light navbar-custom">
+  <div class="container-fluid">
+    <h2 class="navbar-title">Dealerships</h2>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarText">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active nav-link-large" aria-current="page" href="#">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-link-large" href="/about">About Us</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-link-large" href="/contact">Contact Us</a>
+        </li>
+      </ul>
+      <span class="navbar-text">
+        <div class="loginlink" id="loginlogout">
+        </div>
+        </span>
+    </div>
+  </div>
+</nav>
+<div class="main-container">
+<div class="card main-card">
+  <img src="static/car_dealership.jpg" class="card-img-top" alt="...">
+  <div class="banner">
+    <h5>Welcome to our Dealerships!</h5>
+    <a href="/dealers" class="btn btn-custom">View Dealerships</a>
+  </div>
+</div>
+</div>
+</body>
+</html>
