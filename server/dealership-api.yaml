@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dealership-api
+  labels: { app: dealership-api }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: dealership-api }
+  template:
+    metadata:
+      labels: { app: dealership-api }
+    spec:
+      containers:
+        - name: node
+          image: us.icr.io/sn-labs-emifeaustin0/dealership-api:latest
+          ports: [{ containerPort: 3030 }]
+          env:
+            - name: MONGO_URL
+              value: mongodb://mongo-db:27017/dealershipsDB
+          # if you seed from JSON files at startup, make sure your Dockerfile copies them
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dealership-api
+spec:
+  selector: { app: dealership-api }
+  ports:
+    - port: 3030
+      targetPort: 3030

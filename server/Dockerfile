@@ -1,25 +1,21 @@
-    FROM python:3.12.0-slim-bookworm
+FROM python:3.12.0-slim-bookworm
 
-    ENV PYTHONBUFFERED 1
-    ENV PYTHONWRITEBYTECODE 1
+# Use key=value form (no warnings) and standard Python env vars
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP=/app
 
-    ENV APP=/app
+WORKDIR $APP
 
-    # Change the workdir.
-    WORKDIR $APP
+# Install the requirements
+COPY requirements.txt $APP/
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-    # Install the requirements
-    COPY requirements.txt $APP
+# Copy the rest
+COPY . $APP
 
-    RUN pip3 install -r requirements.txt
+EXPOSE 8000
 
-    # Copy the rest of the files
-    COPY . $APP
-
-    EXPOSE 8000
-
-    RUN chmod +x /app/entrypoint.sh
-
-    ENTRYPOINT ["/bin/bash","/app/entrypoint.sh"]
-
-    CMD ["gunicorn", "--bind", ":8000", "--workers", "3", "djangoproj.wsgi"]
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
+CMD ["gunicorn", "--bind", ":8000", "--workers", "3", "djangoproj.wsgi"]

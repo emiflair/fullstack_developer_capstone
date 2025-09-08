@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dealership
+  labels:
+    run: dealership
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: dealership
+  template:
+    metadata:
+      labels:
+        run: dealership
+    spec:
+      containers:
+        - name: dealership
+          image: us.icr.io/sn-labs-emifeaustin0/dealership:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: djangoproj.settings
+            - name: backend_url                # <--- Add this
+              value: http://dealership-api:3030
+            - name: sentiment_analyzer_url     # <--- You already had this externally
+              value: https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/

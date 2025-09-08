@@ -8,9 +8,9 @@ const Dealers = () => {
   const [dealersList, setDealersList] = useState([]);
   const [states, setStates] = useState([]);
 
-  // If your Django route is /djangoapp/get_dealerships/, change it here.
-  const dealersRoot = "/djangoapp/get_dealerships/"; // trailing slash matters
-
+  // If your Django route is /djangoapp/get_dealers/, change it here.
+  const dealersRoot = "/djangoapp/get_dealers/"; // trailing slash matters
+  
   const fetchDealers = async (state) => {
     try {
       const url =

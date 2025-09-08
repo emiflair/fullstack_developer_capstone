@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dealership-svc
+spec:
+  selector:
+    run: dealership        # must match your Deployment's pod labels
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
