@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Startup script for Car Dealership Web Application
-# This script starts all required services
+# Cloud-optimized startup script for Car Dealership Web Application
+# This script is specifically designed for cloud environments like IBM Skills Network
 
-echo "🚗 Starting Car Dealership Web Application..."
+echo "🌩️  Starting Car Dealership Web Application (Cloud Mode)..."
 
 # Check if we're in the right directory
 if [ ! -f "server/manage.py" ]; then
@@ -29,37 +29,56 @@ check_port() {
     return 0
 }
 
+# Function to wait for a service to be ready
+wait_for_service() {
+    local port=$1
+    local service_name=$2
+    local max_attempts=30
+    local attempt=1
+    
+    echo "⏳ Waiting for $service_name to be ready on port $port..."
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s "http://localhost:$port" > /dev/null 2>&1; then
+            echo "✅ $service_name is ready!"
+            return 0
+        fi
+        echo "   Attempt $attempt/$max_attempts..."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    echo "❌ $service_name failed to start after $max_attempts attempts"
+    return 1
+}
+
 # Check ports
 echo "🔍 Checking ports..."
-check_port 8000 || echo "Django might already be running on port 8000"
-check_port 3030 || echo "Database API might already be running on port 3030"
+check_port 8000 && check_port 3030
 
 # Create Python virtual environment if it doesn't exist
-if [ ! -d "server/.venv" ] && [ ! -d ".venv" ]; then
+if [ ! -d ".venv" ]; then
     echo "🐍 Creating Python virtual environment..."
-    cd server
-    python3 -m venv ../.venv
-    cd ..
+    python3 -m venv .venv
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create virtual environment"
+        exit 1
+    fi
 fi
 
 # Activate virtual environment
 echo "🐍 Activating Python virtual environment..."
-if [ -d ".venv" ]; then
-    source .venv/bin/activate
-elif [ -d "server/.venv" ]; then
-    source server/.venv/bin/activate
-else
-    echo "❌ Virtual environment not found"
+source .venv/bin/activate
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to activate virtual environment"
     exit 1
 fi
 
-# Verify Python environment is working
+# Verify Python environment
 echo "🔧 Verifying Python environment..."
-echo "Python path: $(which python3)"
-echo "Python version: $(python3 --version)"
-echo "Pip path: $(which pip)"
+which python3
+python3 --version
+which pip
 
-# Install Python dependencies with error checking
+# Install Python dependencies with verbose output for debugging
 echo "📦 Installing Python dependencies..."
 cd server
 pip install -r requirements.txt
@@ -72,13 +91,8 @@ fi
 echo "🔧 Verifying Django installation..."
 python3 -c "import django; print(f'Django version: {django.get_version()}')"
 if [ $? -ne 0 ]; then
-    echo "❌ Django not properly installed. Attempting to reinstall..."
-    pip install --force-reinstall Django
-    python3 -c "import django; print(f'Django version: {django.get_version()}')"
-    if [ $? -ne 0 ]; then
-        echo "❌ Django installation failed"
-        exit 1
-    fi
+    echo "❌ Django not properly installed"
+    exit 1
 fi
 
 # Run Django migrations
@@ -92,7 +106,7 @@ fi
 # Install Node.js dependencies for database API
 echo "📦 Installing Node.js dependencies..."
 cd database
-npm install --silent
+npm install
 if [ $? -ne 0 ]; then
     echo "❌ Failed to install Node.js dependencies"
     exit 1
@@ -101,7 +115,7 @@ fi
 # Build React frontend
 echo "⚛️  Building React frontend..."
 cd ../frontend
-npm install --silent
+npm install
 GENERATE_SOURCEMAP=false npm run build
 if [ $? -ne 0 ]; then
     echo "❌ Failed to build React frontend"
@@ -113,39 +127,43 @@ cd ..
 
 echo "🎉 Setup complete! Starting services..."
 
-# Start database API in background
+# Start database API in background with logging
 echo "🚀 Starting Database API (Port 3030)..."
 cd database
-node app.js &
+nohup node app.js > ../database.log 2>&1 &
 DATABASE_PID=$!
 cd ..
 
-# Wait a moment for database to start
-sleep 2
+# Wait for database API to be ready
+wait_for_service 3030 "Database API"
+if [ $? -ne 0 ]; then
+    echo "❌ Database API failed to start"
+    kill $DATABASE_PID 2>/dev/null
+    exit 1
+fi
 
-# Start Django server
+# Start Django server with logging
 echo "🚀 Starting Django Server (Port 8000)..."
 echo "📱 Application will be available at: http://localhost:8000"
 echo "📱 In cloud: https://<username>-8000.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"
+echo ""
+echo "📋 Service Status:"
+echo "   - Database API: http://localhost:3030"
+echo "   - Django App: http://localhost:8000"
+echo ""
+echo "📄 Logs:"
+echo "   - Database API: tail -f database.log"
+echo "   - Django: output below"
 echo ""
 echo "🛑 Press Ctrl+C to stop all services"
 echo ""
 
 # Trap Ctrl+C to kill background processes
-trap 'echo ""; echo "🛑 Stopping services..."; kill $DATABASE_PID 2>/dev/null; exit' INT
+trap 'echo ""; echo "🛑 Stopping services..."; kill $DATABASE_PID 2>/dev/null; echo "✅ All services stopped"; exit' INT
 
-# Test Django before starting server
-echo "🧪 Testing Django configuration..."
-python3 manage.py check
-if [ $? -ne 0 ]; then
-    echo "❌ Django configuration has errors"
-    kill $DATABASE_PID 2>/dev/null
-    exit 1
-fi
-
-# Start Django (this will run in foreground)
+# Start Django with better error handling and keep it in foreground for cloud environments
 python3 manage.py runserver 0.0.0.0:8000
 
-# If we get here, Django stopped, so clean up
+# If Django stops unexpectedly, cleanup
 kill $DATABASE_PID 2>/dev/null
 echo "✅ All services stopped"

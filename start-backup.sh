@@ -53,60 +53,25 @@ else
     exit 1
 fi
 
-# Verify Python environment is working
-echo "🔧 Verifying Python environment..."
-echo "Python path: $(which python3)"
-echo "Python version: $(python3 --version)"
-echo "Pip path: $(which pip)"
-
-# Install Python dependencies with error checking
+# Install Python dependencies
 echo "📦 Installing Python dependencies..."
 cd server
-pip install -r requirements.txt
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to install Python dependencies"
-    exit 1
-fi
-
-# Verify Django installation
-echo "🔧 Verifying Django installation..."
-python3 -c "import django; print(f'Django version: {django.get_version()}')"
-if [ $? -ne 0 ]; then
-    echo "❌ Django not properly installed. Attempting to reinstall..."
-    pip install --force-reinstall Django
-    python3 -c "import django; print(f'Django version: {django.get_version()}')"
-    if [ $? -ne 0 ]; then
-        echo "❌ Django installation failed"
-        exit 1
-    fi
-fi
+pip install -q -r requirements.txt
 
 # Run Django migrations
 echo "🗃️  Running Django migrations..."
 python3 manage.py migrate
-if [ $? -ne 0 ]; then
-    echo "❌ Django migrations failed"
-    exit 1
-fi
 
 # Install Node.js dependencies for database API
 echo "📦 Installing Node.js dependencies..."
 cd database
 npm install --silent
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to install Node.js dependencies"
-    exit 1
-fi
 
 # Build React frontend
 echo "⚛️  Building React frontend..."
 cd ../frontend
 npm install --silent
 GENERATE_SOURCEMAP=false npm run build
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to build React frontend"
-    exit 1
-fi
 
 # Go back to server directory
 cd ..
@@ -126,22 +91,12 @@ sleep 2
 # Start Django server
 echo "🚀 Starting Django Server (Port 8000)..."
 echo "📱 Application will be available at: http://localhost:8000"
-echo "📱 In cloud: https://<username>-8000.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"
 echo ""
 echo "🛑 Press Ctrl+C to stop all services"
 echo ""
 
 # Trap Ctrl+C to kill background processes
 trap 'echo ""; echo "🛑 Stopping services..."; kill $DATABASE_PID 2>/dev/null; exit' INT
-
-# Test Django before starting server
-echo "🧪 Testing Django configuration..."
-python3 manage.py check
-if [ $? -ne 0 ]; then
-    echo "❌ Django configuration has errors"
-    kill $DATABASE_PID 2>/dev/null
-    exit 1
-fi
 
 # Start Django (this will run in foreground)
 python3 manage.py runserver 0.0.0.0:8000
