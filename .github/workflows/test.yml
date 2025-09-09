@@ -1,0 +1,50 @@
+name: Quick Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install Python dependencies
+      run: |
+        cd server
+        pip install -r requirements.txt
+        
+    - name: Install Node dependencies
+      run: |
+        cd server/database
+        npm install
+        cd ../frontend  
+        npm install
+        
+    - name: Build React app
+      run: |
+        cd server/frontend
+        GENERATE_SOURCEMAP=false npm run build
+        
+    - name: Run Django checks
+      run: |
+        cd server
+        python manage.py check
+        
+    - name: Test startup
+      run: |
+        echo "✅ All dependencies installed and build successful"

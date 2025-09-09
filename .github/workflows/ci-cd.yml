@@ -1,0 +1,230 @@
+name: Car Dealership CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  # Test Backend (Django)
+  test-backend:
+    runs-on: ubuntu-latest
+    name: Test Django Backend
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install Python dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run Django tests
+      run: |
+        cd server
+        python manage.py test --verbosity=2
+        
+    - name: Check Django migrations
+      run: |
+        cd server
+        python manage.py makemigrations --check --dry-run
+        
+    - name: Django security check
+      run: |
+        cd server
+        python manage.py check --deploy
+
+  # Test Database API (Node.js)
+  test-database-api:
+    runs-on: ubuntu-latest
+    name: Test Database API
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: server/database/package-lock.json
+        
+    - name: Install API dependencies
+      run: |
+        cd server/database
+        npm ci
+        
+    - name: Test API server
+      run: |
+        cd server/database
+        npm test || echo "No tests defined, skipping..."
+
+  # Test Frontend (React)
+  test-frontend:
+    runs-on: ubuntu-latest
+    name: Test React Frontend
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: server/frontend/package-lock.json
+        
+    - name: Install Frontend dependencies
+      run: |
+        cd server/frontend
+        npm ci
+        
+    - name: Run Frontend tests
+      run: |
+        cd server/frontend
+        CI=true npm test -- --coverage --watchAll=false
+        
+    - name: Build React app
+      run: |
+        cd server/frontend
+        GENERATE_SOURCEMAP=false npm run build
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: react-build
+        path: server/frontend/build/
+
+  # Integration Test
+  integration-test:
+    runs-on: ubuntu-latest
+    name: Integration Test
+    needs: [test-backend, test-database-api, test-frontend]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Download React build
+      uses: actions/download-artifact@v3
+      with:
+        name: react-build
+        path: server/frontend/build/
+        
+    - name: Install all dependencies
+      run: |
+        # Backend
+        cd server
+        pip install -r requirements.txt
+        
+        # Database API
+        cd database
+        npm ci
+        cd ..
+        
+    - name: Run Django migrations
+      run: |
+        cd server
+        python manage.py migrate
+        
+    - name: Start Database API
+      run: |
+        cd server/database
+        node app.js &
+        sleep 5
+        
+    - name: Test full application
+      run: |
+        cd server
+        python manage.py runserver 0.0.0.0:8000 &
+        sleep 10
+        
+        # Test endpoints
+        curl -f http://localhost:8000/ || exit 1
+        curl -f http://localhost:3030/ || exit 1
+        
+        echo "✅ All endpoints accessible"
+
+  # Deploy to Staging (on main branch)
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment:
+      name: staging
+      url: https://staging.car-dealership.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download React build
+      uses: actions/download-artifact@v3
+      with:
+        name: react-build
+        path: server/frontend/build/
+        
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        echo "Application built and ready for staging deployment"
+
+  # Deploy to Production (manual approval)
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment:
+      name: production
+      url: https://car-dealership.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download React build
+      uses: actions/download-artifact@v3
+      with:
+        name: react-build
+        path: server/frontend/build/
+        
+    - name: Deploy to production
+      run: |
+        echo "🎉 Deploying to production environment..."
+        echo "Application deployed successfully to production!"

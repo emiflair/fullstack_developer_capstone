@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  # Node.js dependencies (Database API)
+  - package-ecosystem: "npm"
+    directory: "/server/database"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  # Node.js dependencies (Frontend)
+  - package-ecosystem: "npm"
+    directory: "/server/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
