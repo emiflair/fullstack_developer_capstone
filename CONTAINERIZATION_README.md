@@ -29,27 +29,34 @@ docker build -t us.icr.io/sn-labs-emifeaustin0/dealership:latest .
 
 ### 3. Run the Application
 
-#### Option A: Docker Run (Recommended)
+#### Option A: Complete Setup (Database + Django)
 ```bash
-# Run in detached mode
-docker run -d --name dealership-app \
-  -p 8000:8000 \
-  -e DJANGO_SETTINGS_MODULE=djangoproj.settings \
-  -e backend_url=http://localhost:3030 \
-  -e sentiment_analyzer_url=https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/ \
-  us.icr.io/sn-labs-emifeaustin0/dealership:latest
+# Run everything with one command
+./start-complete.sh
 
-# Check if running
-docker ps
-
-# View logs
-docker logs dealership-app
+# This will:
+# - Start the database API on port 3030
+# - Build and run the Django container on port 8000
+# - Configure proper networking between services
 ```
 
-#### Option B: Kubernetes Deployment
+#### Option B: Docker Only (Manual Database Setup)
 ```bash
-# Deploy to Kubernetes
-kubectl apply -f deployment.yaml
+# First, start the database API manually
+cd database
+npm install
+node app.js &
+cd ..
+
+# Then run the Django container
+./start-container.sh
+```
+
+#### Option C: Kubernetes Deployment
+```bash
+# Deploy to Kubernetes (requires database service)
+kubectl apply -f dealership-api.yaml  # Database API service
+kubectl apply -f deployment.yaml      # Django app
 
 # Check deployment
 kubectl get deployments

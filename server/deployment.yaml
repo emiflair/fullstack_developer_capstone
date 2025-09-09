@@ -30,7 +30,7 @@ spec:
           env:
             - name: DJANGO_SETTINGS_MODULE
               value: djangoproj.settings
-            - name: backend_url                # <--- Add this
+            - name: backend_url
               value: http://dealership-api:3030
-            - name: sentiment_analyzer_url     # <--- You already had this externally
+            - name: sentiment_analyzer_url
               value: https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/
