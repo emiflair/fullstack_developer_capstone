@@ -11,11 +11,20 @@ if [ ! -f "server/manage.py" ]; then
     exit 1
 fi
 
-# Function to check if port is in use
+# Function to check if port is in use (graceful fallback)
 check_port() {
-    if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null ; then
-        echo "⚠️  Port $1 is already in use"
-        return 1
+    if command -v lsof >/dev/null 2>&1; then
+        if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1; then
+            echo "⚠️  Port $1 is already in use"
+            return 1
+        fi
+    elif command -v netstat >/dev/null 2>&1; then
+        if netstat -an | grep ":$1.*LISTEN" >/dev/null 2>&1; then
+            echo "⚠️  Port $1 is already in use"
+            return 1
+        fi
+    else
+        echo "ℹ️  Skipping port check (lsof/netstat not available)"
     fi
     return 0
 }
@@ -29,7 +38,7 @@ check_port 3030 || echo "Database API might already be running on port 3030"
 if [ ! -d "server/.venv" ] && [ ! -d ".venv" ]; then
     echo "🐍 Creating Python virtual environment..."
     cd server
-    python -m venv ../.venv
+    python3 -m venv ../.venv
     cd ..
 fi
 
@@ -51,7 +60,7 @@ pip install -q -r requirements.txt
 
 # Run Django migrations
 echo "🗃️  Running Django migrations..."
-python manage.py migrate
+python3 manage.py migrate
 
 # Install Node.js dependencies for database API
 echo "📦 Installing Node.js dependencies..."
@@ -90,7 +99,7 @@ echo ""
 trap 'echo ""; echo "🛑 Stopping services..."; kill $DATABASE_PID 2>/dev/null; exit' INT
 
 # Start Django (this will run in foreground)
-python manage.py runserver 0.0.0.0:8000
+python3 manage.py runserver 0.0.0.0:8000
 
 # If we get here, Django stopped, so clean up
 kill $DATABASE_PID 2>/dev/null
