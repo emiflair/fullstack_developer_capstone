@@ -33,6 +33,67 @@ table{
     margin:20px;
     padding:10px;
     font-size: larger;
+    background-color: #23e0e0;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .postreview:hover:not(:disabled) {
+    background-color: #23e0e0;
+    transform: translateY(-2px);
+  }
+
+  .postreview:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .input_field {
+    margin-bottom: 15px;
+  }
+
+  .input_field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #23e0e0;
+  }
+
+  .input_field input,
+  .input_field select,
+  .input_field textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: border-color 0.3s ease;
+  }
+
+  .input_field input:focus,
+  .input_field select:focus,
+  .input_field textarea:focus {
+    outline: none;
+    border-color: #23e0e0;
+    box-shadow: 0 0 0 3px rgba(35, 224, 224, 0.1);
+  }
+
+  .review-form-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .review-form-section h3 {
+    margin: 0 0 15px 0;
+    color: #23e0e0;
+    font-size: 18px;
   }
 
   th{

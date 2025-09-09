@@ -138,70 +138,252 @@ export default function PostReview() {
   return (
     <div>
       <Header />
-      <div style={{ margin: "5%" }}>
-        <h1 style={{ color: "darkblue" }}>
-          {dealer ? dealer.full_name : "Loading dealer..."}
-        </h1>
+      <div style={{ 
+        padding: "40px 20px",
+        maxWidth: "900px",
+        margin: "0 auto",
+        backgroundColor: "#f5f5f5",
+        minHeight: "100vh"
+      }}>
+        <div style={{
+          backgroundColor: "white",
+          borderRadius: "12px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          overflow: "hidden"
+        }}>
+          {/* Header */}
+          <div style={{
+            background: "linear-gradient(135deg, #23e0e0 0%, #1ac6c6 100%)",
+            color: "white",
+            padding: "30px",
+            textAlign: "center"
+          }}>
+            <h1 style={{
+              margin: "0",
+              fontSize: "28px",
+              fontWeight: "600"
+            }}>
+              Write a Review
+            </h1>
+            <p style={{
+              margin: "10px 0 0 0",
+              fontSize: "18px",
+              opacity: "0.9"
+            }}>
+              {dealer ? dealer.full_name : "Loading dealer..."}
+            </p>
+          </div>
 
-        <label htmlFor="review" className="block mb-2">Your Review</label>
-        <textarea
-          id="review"
-          cols="50"
-          rows="7"
-          required
-          value={review}
-          onChange={(e) => setReview(e.target.value)}
-        />
+          {/* Form Content */}
+          <div style={{ padding: "40px" }}>
+            {/* Review Text Area */}
+            <div style={{ marginBottom: "30px" }}>
+              <label style={{ 
+                display: "block", 
+                marginBottom: "12px", 
+                fontSize: "16px",
+                fontWeight: "600",
+                color: "#333"
+              }}>
+                Your Review <span style={{ color: "#e74c3c" }}>*</span>
+              </label>
+              <textarea
+                id="review"
+                placeholder="Share your experience with this dealership. What did you like? What could be improved?"
+                required
+                value={review}
+                onChange={(e) => setReview(e.target.value)}
+                style={{
+                  width: "100%",
+                  minHeight: "140px",
+                  padding: "16px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "16px",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  lineHeight: "1.5",
+                  boxSizing: "border-box"
+                }}
+              />
+            </div>
 
-        <div className="input_field">
-          Purchase Date{" "}
-          <input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
+            {/* Vehicle Information Section */}
+            <div style={{ 
+              backgroundColor: "#f8f9fa", 
+              padding: "25px", 
+              borderRadius: "12px", 
+              marginBottom: "30px",
+              border: "1px solid #e9ecef"
+            }}>
+              <h3 style={{ 
+                margin: "0 0 20px 0", 
+                color: "#23e0e0", 
+                fontSize: "20px",
+                fontWeight: "600"
+              }}>
+                🚗 Vehicle Information
+              </h3>
+              
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "2fr 1fr", 
+                gap: "20px",
+                alignItems: "end"
+              }}>
+                {/* Car Make & Model */}
+                <div>
+                  <label style={{ 
+                    display: "block", 
+                    marginBottom: "8px", 
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#555"
+                  }}>
+                    Car Make & Model <span style={{ color: "#e74c3c" }}>*</span>
+                  </label>
+                  <select
+                    name="cars"
+                    id="cars"
+                    required
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      fontSize: "16px",
+                      backgroundColor: "white",
+                      boxSizing: "border-box"
+                    }}
+                  >
+                    <option value="" disabled hidden>
+                      Choose Car Make and Model
+                    </option>
+                    {carmodels.map((c, idx) => (
+                      <option
+                        key={`${c.CarMake}-${c.CarModel}-${idx}`}
+                        value={`${c.CarMake}|${c.CarModel}`}
+                      >
+                        {c.CarMake} {c.CarModel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        <div className="input_field">
-          Car Make &amp; Model
-          <select
-            name="cars"
-            id="cars"
-            required
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            <option value="" disabled hidden>
-              Choose Car Make and Model
-            </option>
-            {carmodels.map((c, idx) => (
-              <option
-                key={`${c.CarMake}-${c.CarModel}-${idx}`}
-                value={`${c.CarMake}|${c.CarModel}`}
+                {/* Car Year */}
+                <div>
+                  <label style={{ 
+                    display: "block", 
+                    marginBottom: "8px", 
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#555"
+                  }}>
+                    Car Year <span style={{ color: "#e74c3c" }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    max={new Date().getFullYear()}
+                    min={2010}
+                    placeholder="2023"
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      fontSize: "16px",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Purchase Information */}
+            <div style={{ marginBottom: "40px" }}>
+              <label style={{ 
+                display: "block", 
+                marginBottom: "8px", 
+                fontSize: "16px",
+                fontWeight: "600",
+                color: "#333"
+              }}>
+                📅 Purchase Date <span style={{ color: "#e74c3c" }}>*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{
+                  padding: "12px 16px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "16px",
+                  width: "200px",
+                  boxSizing: "border-box"
+                }}
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div style={{ 
+              textAlign: "center", 
+              paddingTop: "20px",
+              borderTop: "1px solid #e9ecef"
+            }}>
+              <button 
+                onClick={postreview} 
+                disabled={posting}
+                style={{
+                  backgroundColor: posting ? "#bbb" : "#23e0e0",
+                  color: "white",
+                  border: "none",
+                  padding: "16px 48px",
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  borderRadius: "50px",
+                  cursor: posting ? "not-allowed" : "pointer",
+                  transition: "all 0.3s ease",
+                  boxShadow: posting ? "none" : "0 4px 12px rgba(35, 224, 224, 0.3)",
+                  transform: posting ? "none" : "translateY(0)",
+                  minWidth: "200px"
+                }}
+                onMouseOver={(e) => {
+                  if (!posting) {
+                    e.target.style.backgroundColor = "#1ac6c6";
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow = "0 6px 16px rgba(35, 224, 224, 0.4)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!posting) {
+                    e.target.style.backgroundColor = "#23e0e0";
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = "0 4px 12px rgba(35, 224, 224, 0.3)";
+                  }
+                }}
               >
-                {c.CarMake} {c.CarModel}
-              </option>
-            ))}
-          </select>
-        </div>
+                {posting ? "⏳ Posting Review..." : "✨ Post Review"}
+              </button>
+            </div>
 
-        <div className="input_field">
-          Car Year{" "}
-          <input
-            type="number"
-            required
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            max={new Date().getFullYear()}
-            min={2010}
-          />
-        </div>
-
-        <div>
-          <button className="postreview" onClick={postreview} disabled={posting}>
-            {posting ? "Posting..." : "Post Review"}
-          </button>
+            {/* Required fields note */}
+            <div style={{ 
+              marginTop: "25px", 
+              textAlign: "center", 
+              color: "#888",
+              fontSize: "14px",
+              fontStyle: "italic"
+            }}>
+              <span style={{ color: "#e74c3c" }}>*</span> Required fields
+            </div>
+          </div>
         </div>
       </div>
     </div>
