@@ -28,21 +28,27 @@ python - <<'PY'
 import os, django
 django.setup()
 from django.contrib.auth import get_user_model
-from django.core.management import call_command
 
 User = get_user_model()
-u = os.environ.get("DJANGO_SUPERUSER_USERNAME")
-p = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
-e = os.environ.get("DJANGO_SUPERUSER_EMAIL") or "admin@example.com"
+u = os.environ.get("DJANGO_SUPERUSER_USERNAME", "emifeaustin")
+p = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "dealership123")
+e = os.environ.get("DJANGO_SUPERUSER_EMAIL", "emifeaustin0909@gmail.com")
 
 if u and p:
     if not User.objects.filter(username=u).exists():
         print(f"[entrypoint] creating superuser {u}")
-        call_command("createsuperuser", interactive=False, username=u, email=e)
-        usr = User.objects.get(username=u)
-        usr.set_password(p); usr.is_staff = True; usr.is_superuser = True; usr.save()
+        user = User.objects.create_user(username=u, email=e, password=p)
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+        print(f"[entrypoint] superuser {u} created successfully!")
     else:
         print(f"[entrypoint] superuser {u} already exists")
+        # Update password in case it changed
+        user = User.objects.get(username=u)
+        user.set_password(p)
+        user.save()
+        print(f"[entrypoint] superuser {u} password updated")
 else:
     print("[entrypoint] DJANGO_SUPERUSER_* not set; skipping superuser creation")
 PY
