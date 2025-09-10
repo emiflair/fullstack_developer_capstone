@@ -17,8 +17,17 @@ def _env(name: str, default: str = "") -> str:
 def _norm_base(url: str) -> str:
     return (url or "").rstrip("/")
 
+# Primary backend URL from environment
 BACKEND_URL = _norm_base(_env("BACKEND_URL", "http://localhost:3030"))
 SENT_BASE   = _norm_base(_env("sentiment_analyzer_url"))
+
+# Fallback URLs for cloud environments
+FALLBACK_URLS = [
+    "https://emifeaustin0-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai",
+    "http://host.docker.internal:3030",
+    "http://localhost:3030",
+    "http://127.0.0.1:3030",
+]
 
 if not BACKEND_URL:
     raise RuntimeError("backend_url is not set (env or .env)")
@@ -33,19 +42,27 @@ def _join(base: str, endpoint: str) -> str:
     return f"{base}{ep}"
 
 def get_request(endpoint: str, **params):
-    """GET the Node/Mongo backend."""
-    url = _join(BACKEND_URL, endpoint)
-    if params:
-        url = f"{url}?{urlencode(params)}"
-    print(f"[restapis] GET {url}")
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        ct = (r.headers.get("content-type") or "").lower()
-        return r.json() if "application/json" in ct else r.text
-    except Exception as e:
-        print("[restapis] GET error:", e)
-        return None
+    """GET the Node/Mongo backend with fallback URLs."""
+    urls_to_try = [BACKEND_URL] + FALLBACK_URLS
+    
+    for base_url in urls_to_try:
+        url = _join(base_url, endpoint)
+        if params:
+            url = f"{url}?{urlencode(params)}"
+        print(f"[restapis] GET {url}")
+        try:
+            r = requests.get(url, timeout=10)
+            r.raise_for_status()
+            ct = (r.headers.get("content-type") or "").lower()
+            result = r.json() if "application/json" in ct else r.text
+            print(f"[restapis] SUCCESS with {base_url}")
+            return result
+        except Exception as e:
+            print(f"[restapis] GET error with {base_url}: {e}")
+            continue
+    
+    print("[restapis] All URLs failed")
+    return None
 
 def analyze_review_sentiments(text: str):
     """GET the sentiment analyzer microservice."""
@@ -60,14 +77,22 @@ def analyze_review_sentiments(text: str):
         return {"sentiment": "neutral"}
 
 def post_review(data: dict):
-    """POST a review to the Node/Mongo backend."""
-    url = _join(BACKEND_URL, "insert_review")
-    print(f"[restapis] POST {url}")
-    try:
-        r = requests.post(url, json=data, timeout=10)
-        r.raise_for_status()
-        ct = (r.headers.get("content-type") or "").lower()
-        return r.json() if "application/json" in ct else r.text
-    except Exception as e:
-        print("[restapis] POST error:", e)
-        return {"status": "error", "error": str(e)}
+    """POST a review to the Node/Mongo backend with fallback URLs."""
+    urls_to_try = [BACKEND_URL] + FALLBACK_URLS
+    
+    for base_url in urls_to_try:
+        url = _join(base_url, "insert_review")
+        print(f"[restapis] POST {url}")
+        try:
+            r = requests.post(url, json=data, timeout=10)
+            r.raise_for_status()
+            ct = (r.headers.get("content-type") or "").lower()
+            result = r.json() if "application/json" in ct else r.text
+            print(f"[restapis] POST SUCCESS with {base_url}")
+            return result
+        except Exception as e:
+            print(f"[restapis] POST error with {base_url}: {e}")
+            continue
+    
+    print("[restapis] All POST URLs failed")
+    return {"status": "error", "error": "All backend URLs failed"}
