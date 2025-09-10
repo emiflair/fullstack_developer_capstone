@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # 🐳 Car Dealership Containerized Startup Script
-# Run this script after cloning the repo and switching to containerize-k8s branch
+# Run this script after c    # Cloud IDE environment - use the proxy URL pattern
+    # In cloud IDE, use 'theia' as the username for the proxy URL
+    USERNAME="theia"
+    CLOUD_BACKEND_URL="https://${USERNAME}-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"ng the repo and switching to containerize-k8s branch
 
 echo "🐳 Starting Car Dealership Containerized Application"
 echo "=================================================="
@@ -85,36 +88,42 @@ echo "🚀 Starting Django container..."
 
 # Detect environment and set appropriate backend URL
 if [ -n "$CLOUD_IDE" ] || [ -d "/home/theia" ] || [ -n "$THEIA_WORKSPACE_ROOT" ] || [ "$(whoami)" = "theia" ]; then
-    # Cloud IDE environment - use host networking for better connectivity
-    BACKEND_URL="http://localhost:3030"
-    echo "   🌐 Cloud environment detected, using host networking and BACKEND_URL=${BACKEND_URL}"
-    IS_CLOUD=true
+    # Cloud IDE environment - use the proxy URL pattern
+    # Extract username from environment or use default
+    USERNAME=$(whoami 2>/dev/null || echo "emifeaustin0")
+    BACKEND_URL="https://${USERNAME}-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"
+    echo "   🌐 Cloud environment detected, using BACKEND_URL=${BACKEND_URL}"
+    
+    # Test if the backend URL is reachable from host
+    if ! curl -s "${BACKEND_URL}/fetchDealers" > /dev/null 2>&1; then
+        echo "   ⚠️  ${BACKEND_URL} not reachable, trying alternative approaches..."
+        # Try with different username patterns
+        BACKEND_URL="https://emifeaustin0-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"
+        if ! curl -s "${BACKEND_URL}/fetchDealers" > /dev/null 2>&1; then
+            # Fallback to host IP approach
+            HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || ip route get 1 2>/dev/null | awk '{print $7}' || ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1 || echo "127.0.0.1")
+            BACKEND_URL="http://${HOST_IP}:3030"
+            echo "   ⚠️  Trying host IP: ${BACKEND_URL}"
+            if ! curl -s "${BACKEND_URL}/fetchDealers" > /dev/null 2>&1; then
+                GATEWAY_IP=$(ip route | grep default | awk '{print $3}' 2>/dev/null || echo "172.17.0.1")
+                BACKEND_URL="http://${GATEWAY_IP}:3030"
+                echo "   ⚠️  Trying gateway IP: ${BACKEND_URL}"
+            fi
+        fi
+    fi
 else
     # Local environment - use host.docker.internal
     BACKEND_URL="http://host.docker.internal:3030"
     echo "   💻 Local environment detected, using BACKEND_URL=${BACKEND_URL}"
-    IS_CLOUD=false
 fi
 
-# Run container with appropriate networking based on environment
-if [ "$IS_CLOUD" = true ]; then
-    echo "   🔗 Using host networking for cloud environment"
-    docker run -d --name dealership-app \
-      --network host \
-      -e DJANGO_SETTINGS_MODULE=djangoproj.settings \
-      -e BACKEND_URL="${BACKEND_URL}" \
-      -e sentiment_analyzer_url=https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/ \
-      us.icr.io/sn-labs-emifeaustin0/dealership:latest
-else
-    echo "   � Using bridge networking for local environment"
-    docker run -d --name dealership-app \
-      -p 0.0.0.0:8000:8000 \
-      --add-host=host.docker.internal:host-gateway \
-      -e DJANGO_SETTINGS_MODULE=djangoproj.settings \
-      -e BACKEND_URL="${BACKEND_URL}" \
-      -e sentiment_analyzer_url=https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/ \
-      us.icr.io/sn-labs-emifeaustin0/dealership:latest
-fi
+docker run -d --name dealership-app \
+  -p 0.0.0.0:8000:8000 \
+  --add-host=host.docker.internal:host-gateway \
+  -e DJANGO_SETTINGS_MODULE=djangoproj.settings \
+  -e BACKEND_URL="${BACKEND_URL}" \
+  -e sentiment_analyzer_url=https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/ \
+  us.icr.io/sn-labs-emifeaustin0/dealership:latest
 
 if [ $? -eq 0 ]; then
     echo "✅ Container started successfully"
