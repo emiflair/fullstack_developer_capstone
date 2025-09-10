@@ -27,6 +27,50 @@ if [ "$(docker ps -q -f name=dealership-app)" ]; then
     docker rm dealership-app
 fi
 
+# Check if database API is running and stop it if needed
+if [ "$(ps aux | grep 'node app.js' | grep -v grep)" ]; then
+    echo "🟡 Stopping existing Database API..."
+    pkill -f "node app.js"
+    sleep 2
+fi
+
+# Start Database API
+echo "🔧 Starting Database API..."
+cd database
+if [ ! -f "app.js" ]; then
+    echo "❌ Error: Database API files not found in database directory"
+    exit 1
+fi
+
+# Install database dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing Database API dependencies..."
+    npm install
+fi
+
+# Start database API in background
+echo "   Starting Node.js Database API on port 3030..."
+nohup node app.js > ../database-api.log 2>&1 &
+DATABASE_PID=$!
+echo "   Database API started with PID $DATABASE_PID"
+cd ..
+
+# Wait for API to be ready
+echo "   Waiting for Database API to start..."
+for i in {1..15}; do
+    if curl -s http://localhost:3030/fetchDealers > /dev/null 2>&1; then
+        echo "   ✅ Database API is ready"
+        break
+    fi
+    sleep 1
+done
+
+if [ $i -eq 15 ]; then
+    echo "   ❌ Database API failed to start after 15 seconds"
+    echo "   Check database-api.log for errors"
+    exit 1
+fi
+
 echo "🔨 Building Docker image..."
 docker build -t us.icr.io/sn-labs-emifeaustin0/dealership:latest .
 
@@ -37,12 +81,12 @@ else
     exit 1
 fi
 
-echo "🚀 Starting container..."
+echo "🚀 Starting Django container..."
 docker run -d --name dealership-app \
-  -p 8000:8000 \
+  -p 0.0.0.0:8000:8000 \
   --add-host=host.docker.internal:host-gateway \
   -e DJANGO_SETTINGS_MODULE=djangoproj.settings \
-  -e backend_url=http://host.docker.internal:3030 \
+  -e BACKEND_URL=http://host.docker.internal:3030 \
   -e sentiment_analyzer_url=https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/ \
   us.icr.io/sn-labs-emifeaustin0/dealership:latest
 
@@ -59,14 +103,34 @@ if [ $? -eq 0 ]; then
         echo "📊 Container Status:"
         docker ps --filter name=dealership-app --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
         echo ""
+        
+        # Test the application
+        echo "🧪 Testing application..."
+        if curl -s http://localhost:8000/djangoapp/get_dealers/ | grep -q '"status": 200'; then
+            echo "✅ Dealers endpoint working"
+        else
+            echo "⚠️  Dealers endpoint may need a moment to initialize"
+        fi
+        
+        echo ""
         echo "🎉 Success! Your application is running at:"
-        echo "   📱 http://localhost:8000"
+        echo "   �️  Local: http://localhost:8000"
+        echo "   📱 Mobile: http://$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1):8000"
+        echo "   🔧 Database API: http://localhost:3030"
+        echo ""
+        echo "✨ Features available:"
+        echo "   ✅ User Registration & Login"
+        echo "   ✅ View Dealerships"
+        echo "   ✅ Add & View Reviews"
+        echo "   ✅ Sentiment Analysis"
         echo ""
         echo "🔧 Useful commands:"
-        echo "   View logs:    docker logs dealership-app"
-        echo "   Stop app:     docker stop dealership-app"
-        echo "   Remove app:   docker rm dealership-app"
-        echo "   Container stats: docker stats dealership-app"
+        echo "   View Django logs:    docker logs dealership-app"
+        echo "   View Database logs:  tail -f database-api.log"
+        echo "   Stop Django:         docker stop dealership-app"
+        echo "   Stop Database:       pkill -f 'node app.js'"
+        echo "   Stop all:            docker stop dealership-app && pkill -f 'node app.js'"
+        echo "   Container stats:     docker stats dealership-app"
     else
         echo "❌ Container failed to start. Check logs:"
         docker logs dealership-app
