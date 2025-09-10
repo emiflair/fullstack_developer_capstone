@@ -27,3 +27,9 @@ spec:
               value: http://dealership-api:3030
             - name: sentiment_analyzer_url     # <--- You already had this externally
               value: https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/
+            - name: DJANGO_SUPERUSER_USERNAME  # <--- Superuser credentials
+              value: emifeaustin
+            - name: DJANGO_SUPERUSER_EMAIL
+              value: emifeaustin0909@gmail.com
+            - name: DJANGO_SUPERUSER_PASSWORD
+              value: dealership123
