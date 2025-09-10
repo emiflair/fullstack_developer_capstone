@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dealership
+  labels:
+    run: dealership
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: dealership
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: dealership
+    spec:
+      containers:
+        - image: us.icr.io/sn-labs-emifeaustin0/dealership:latest
+          imagePullPolicy: Always
+          name: dealership
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          restartPolicy: Always
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: djangoproj.settings
+            - name: BACKEND_URL
+              value: http://localhost:3030
+            - name: sentiment_analyzer_url
+              value: https://sentianalyzer.1zsxdruquzxr.us-south.codeengine.appdomain.cloud/
