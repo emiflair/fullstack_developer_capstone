@@ -1,0 +1,72 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["CI/CD - Continuous Integration and Deployment"]
+    types:
+      - completed
+    branches: [main]
+
+env:
+  REGISTRY_HOSTNAME: us.icr.io
+  REGISTRY_NAMESPACE: sn-labs-emifeaustin0
+  IMAGE_NAME: dealership-app
+
+jobs:
+  deploy-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    environment:
+      name: production
+      url: http://your-production-url.com
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Set up IBM Cloud CLI
+      run: |
+        curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+        ibmcloud --version
+        
+    - name: Login to IBM Cloud
+      env:
+        IBM_CLOUD_API_KEY: ${{ secrets.IBM_CLOUD_API_KEY }}
+        IBM_CLOUD_REGION: us-south
+      run: |
+        ibmcloud login --apikey $IBM_CLOUD_API_KEY -r $IBM_CLOUD_REGION
+        
+    - name: Configure Kubernetes cluster
+      run: |
+        ibmcloud ks cluster config --cluster ${{ secrets.CLUSTER_NAME }}
+        
+    - name: Deploy to Production
+      run: |
+        # Update deployment with latest image
+        kubectl set image deployment/dealership-app dealership-app=${{ env.REGISTRY_HOSTNAME }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/dealership-app --timeout=300s
+        
+        # Verify deployment
+        kubectl get deployments
+        kubectl get services
+        kubectl get pods
+        
+    - name: Run Health Check
+      run: |
+        # Get the service URL
+        SERVICE_IP=$(kubectl get service dealership-app-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        if [ -z "$SERVICE_IP" ]; then
+          SERVICE_IP=$(kubectl get service dealership-app-service -o jsonpath='{.spec.clusterIP}')
+        fi
+        
+        # Health check
+        curl -f http://$SERVICE_IP:8000/health || exit 1
+        
+    - name: Notify Deployment Success
+      if: success()
+      run: |
+        echo "✅ Deployment successful to production environment"
+        echo "Application is running and healthy"
