@@ -1,10 +1,7 @@
 #!/bin/bash
 
 # 🐳 Car Dealership Containerized Startup Script
-# Run this script after c    # Cloud IDE environment - use the proxy URL pattern
-    # In cloud IDE, use 'theia' as the username for the proxy URL
-    USERNAME="theia"
-    CLOUD_BACKEND_URL="https://${USERNAME}-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"ng the repo and switching to containerize-k8s branch
+# Run this script after cloning the repo and switching to containerize-k8s branch
 
 echo "🐳 Starting Car Dealership Containerized Application"
 echo "=================================================="
