@@ -84,7 +84,7 @@ fi
 echo "🚀 Starting Django container..."
 
 # Detect environment and set appropriate backend URL
-if [ -n "$CLOUD_IDE" ] || [ -f "/home/theia" ] || [ -n "$THEIA_WORKSPACE_ROOT" ]; then
+if [ -n "$CLOUD_IDE" ] || [ -d "/home/theia" ] || [ -n "$THEIA_WORKSPACE_ROOT" ] || [ "$(whoami)" = "theia" ]; then
     # Cloud IDE environment - use the proxy URL pattern
     # Extract username from environment or use default
     USERNAME=$(whoami 2>/dev/null || echo "emifeaustin0")
